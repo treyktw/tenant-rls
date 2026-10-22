@@ -1,0 +1,21 @@
+# Local Postgres for the tests and `make demo`: migrations from
+# sql/migrations, logins from docker/initdb/00_init.sh. Passwords are
+# local-development placeholders, not secrets.
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:16}
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres-local-only
+    ports:
+      - "${RLS_KIT_PG_PORT:-55440}:5432"
+    volumes:
+      - ./sql/migrations:/migrations:ro
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "psql -U postgres -d rls_kit -tAc \"SELECT 1 FROM pg_roles WHERE rolname = 'bypass_login'\" | grep -q 1"]
+      interval: 1s
+      timeout: 3s
+      retries: 90
+    tmpfs:
+      - /var/lib/postgresql/data
